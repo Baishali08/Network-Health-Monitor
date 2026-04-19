@@ -59,6 +59,11 @@ Then, visit `http://localhost:8080` in your web browser.
 - `index.html`: The document structure, integrating Google Fonts and external SDK resources.
 - `styles.css`: The comprehensive design system, featuring CSS variables for straightforward theming and responsive media queries.
 - `script.js`: The core application engine. Coordinates Horizon endpoint requests (e.g. `/fee_stats`) alongside realtime SSE streams (`server.ledgers().stream()`).
+- `smart-contract/`: Contains the Soroban smart contract for recording network health statuses on-chain.
+
+## 🌌 Smart Contract Integration
+
+This project includes a Stellar Soroban smart contract in the `smart-contract/` directory. It can be used to log and retrieve the network health status directly on the blockchain, serving as a decentralized historical registry. For full details on building and deploying, check the README in the `smart-contract` directory.
 
 ## 🤝 Contributing
 
