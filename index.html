@@ -3,23 +3,248 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stellar Network Health Monitor</title>
+    <title>Stellar Network Health Monitor — Live Dashboard</title>
+    <meta name="description" content="Real-time Stellar blockchain network health monitoring dashboard. Track ledger status, fee statistics, transaction throughput, and network performance metrics live.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h1>Stellar Network Health Monitor</h1>
-    <table id="health-table">
-        <thead>
-            <tr>
-                <th>Time</th>
-                <th>Status</th>
-                <th>Details</th>
-            </tr>
-        </thead>
-        <tbody id="health-body">
-        </tbody>
-    </table>
-    <script src="https://unpkg.com/stellar-sdk@10.4.0/dist/stellar-sdk.min.js"></script>
+
+    <!-- Animated background particles -->
+    <div class="bg-particles" id="bg-particles"></div>
+
+    <!-- Header -->
+    <header id="app-header">
+        <div class="header-left">
+            <div class="logo" id="logo">
+                <svg width="36" height="36" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="50" r="45" stroke="url(#grad1)" stroke-width="4" fill="none" opacity="0.3"/>
+                    <circle cx="50" cy="50" r="30" stroke="url(#grad1)" stroke-width="3" fill="none" opacity="0.5"/>
+                    <circle cx="50" cy="50" r="15" fill="url(#grad1)" opacity="0.8"/>
+                    <circle cx="50" cy="50" r="8" fill="#fff" opacity="0.9"/>
+                    <defs>
+                        <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#6366f1"/>
+                            <stop offset="100%" style="stop-color:#06b6d4"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            <div>
+                <h1>Stellar Network Monitor</h1>
+                <p class="subtitle">Real-time blockchain health dashboard</p>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="network-selector" id="network-selector">
+                <button class="net-btn active" data-network="mainnet" id="btn-mainnet">Mainnet</button>
+                <button class="net-btn" data-network="testnet" id="btn-testnet">Testnet</button>
+            </div>
+            <div class="live-indicator" id="live-indicator">
+                <span class="pulse-dot"></span>
+                <span>LIVE</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Top-level KPI Cards -->
+    <section class="kpi-strip" id="kpi-strip">
+        <div class="kpi-card" id="kpi-latest-ledger">
+            <div class="kpi-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+            </div>
+            <div class="kpi-content">
+                <span class="kpi-label">Latest Ledger</span>
+                <span class="kpi-value" id="val-latest-ledger">—</span>
+            </div>
+        </div>
+        <div class="kpi-card" id="kpi-close-time">
+            <div class="kpi-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            </div>
+            <div class="kpi-content">
+                <span class="kpi-label">Close Time</span>
+                <span class="kpi-value" id="val-close-time">—</span>
+            </div>
+        </div>
+        <div class="kpi-card" id="kpi-tx-count">
+            <div class="kpi-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            </div>
+            <div class="kpi-content">
+                <span class="kpi-label">Transactions (last ledger)</span>
+                <span class="kpi-value" id="val-tx-count">—</span>
+            </div>
+        </div>
+        <div class="kpi-card" id="kpi-op-count">
+            <div class="kpi-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+            <div class="kpi-content">
+                <span class="kpi-label">Operations (last ledger)</span>
+                <span class="kpi-value" id="val-op-count">—</span>
+            </div>
+        </div>
+        <div class="kpi-card" id="kpi-base-fee">
+            <div class="kpi-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+            </div>
+            <div class="kpi-content">
+                <span class="kpi-label">Base Fee</span>
+                <span class="kpi-value" id="val-base-fee">—</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Grid -->
+    <main class="dashboard-grid" id="dashboard-grid">
+
+        <!-- Network Status Panel -->
+        <section class="panel panel-status" id="panel-status">
+            <div class="panel-header">
+                <h2>Network Status</h2>
+                <span class="status-badge" id="status-badge">Checking…</span>
+            </div>
+            <div class="panel-body">
+                <div class="status-ring-container">
+                    <div class="status-ring" id="status-ring">
+                        <svg viewBox="0 0 120 120">
+                            <circle class="ring-bg" cx="60" cy="60" r="52"/>
+                            <circle class="ring-fill" cx="60" cy="60" r="52" id="ring-fill"/>
+                        </svg>
+                        <div class="ring-center">
+                            <span class="ring-value" id="ring-value">—</span>
+                            <span class="ring-label">Health</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="status-details" id="status-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Protocol Version</span>
+                        <span class="detail-value" id="val-protocol">—</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Base Reserve</span>
+                        <span class="detail-value" id="val-base-reserve">—</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Max Tx Set Size</span>
+                        <span class="detail-value" id="val-max-tx-set">—</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Ledger Lag</span>
+                        <span class="detail-value" id="val-ledger-lag">—</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Fee Statistics Panel -->
+        <section class="panel panel-fees" id="panel-fees">
+            <div class="panel-header">
+                <h2>Fee Statistics</h2>
+                <span class="panel-sub">Last 5 ledgers</span>
+            </div>
+            <div class="panel-body">
+                <div class="fee-grid" id="fee-grid">
+                    <div class="fee-card" id="fee-min">
+                        <span class="fee-label">Min Fee</span>
+                        <span class="fee-value" id="val-fee-min">—</span>
+                        <span class="fee-unit">stroops</span>
+                    </div>
+                    <div class="fee-card" id="fee-mode">
+                        <span class="fee-label">Mode Fee</span>
+                        <span class="fee-value" id="val-fee-mode">—</span>
+                        <span class="fee-unit">stroops</span>
+                    </div>
+                    <div class="fee-card" id="fee-p50">
+                        <span class="fee-label">p50</span>
+                        <span class="fee-value" id="val-fee-p50">—</span>
+                        <span class="fee-unit">stroops</span>
+                    </div>
+                    <div class="fee-card" id="fee-p95">
+                        <span class="fee-label">p95</span>
+                        <span class="fee-value" id="val-fee-p95">—</span>
+                        <span class="fee-unit">stroops</span>
+                    </div>
+                    <div class="fee-card" id="fee-p99">
+                        <span class="fee-label">p99</span>
+                        <span class="fee-value" id="val-fee-p99">—</span>
+                        <span class="fee-unit">stroops</span>
+                    </div>
+                    <div class="fee-card" id="fee-capacity">
+                        <span class="fee-label">Capacity Usage</span>
+                        <span class="fee-value" id="val-fee-capacity">—</span>
+                        <span class="fee-unit">%</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Ledger History Panel -->
+        <section class="panel panel-history" id="panel-history">
+            <div class="panel-header">
+                <h2>Ledger History</h2>
+                <span class="panel-sub" id="history-count">Last 10 ledgers</span>
+            </div>
+            <div class="panel-body">
+                <div class="table-wrapper">
+                    <table id="ledger-table">
+                        <thead>
+                            <tr>
+                                <th>Sequence</th>
+                                <th>Closed</th>
+                                <th>Txns</th>
+                                <th>Ops</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ledger-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Throughput Chart Panel -->
+        <section class="panel panel-chart" id="panel-chart">
+            <div class="panel-header">
+                <h2>Transaction Throughput</h2>
+                <span class="panel-sub">Operations per ledger</span>
+            </div>
+            <div class="panel-body">
+                <div class="chart-container" id="chart-container">
+                    <canvas id="throughput-canvas"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Live Event Stream Panel -->
+        <section class="panel panel-stream" id="panel-stream">
+            <div class="panel-header">
+                <h2>Live Ledger Stream</h2>
+                <div class="stream-controls">
+                    <button class="stream-btn" id="btn-stream-toggle">
+                        <span class="pulse-dot small"></span> Streaming
+                    </button>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="stream-feed" id="stream-feed">
+                    <div class="stream-placeholder">Connecting to Stellar Horizon…</div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer id="app-footer">
+        <p>Powered by <strong>Stellar Horizon API</strong> &middot; Data refreshes every 5 seconds &middot; Built with <code>@stellar/stellar-sdk</code></p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@14.6.1/dist/stellar-sdk.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
